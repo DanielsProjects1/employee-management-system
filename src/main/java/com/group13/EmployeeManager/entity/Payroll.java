@@ -14,8 +14,9 @@ public class Payroll {
     private double stateTax;
     private double retire401k;
     private double healthCare;
-    @OneToOne(cascade = CascadeType.ALL)
-    private FederalInfo fedInfo;
+    private double fedTax;
+    private double fedMedical;
+    private double fedSocialSecurity;
 
     public Payroll() {}
 
@@ -25,7 +26,9 @@ public class Payroll {
         this.stateTax = stateTax;
         this.retire401k = retire401k;
         this.healthCare = healthCare;
-        this.fedInfo = fedInfo;
+        this.fedTax = fedInfo.getTax();
+        this.fedMedical = fedInfo.getMedical();
+        this.fedSocialSecurity = fedInfo.getSocialSecurtiy();
     }
 
     public int getPayId() {
@@ -76,11 +79,30 @@ public class Payroll {
         this.healthCare = healthCare;
     }
 
-    public FederalInfo getFedInfo() {
-        return fedInfo;
+    public double getFedTax() {
+        return fedTax;
     }
 
-    public void setFedInfo(FederalInfo fedInfo) {
-        this.fedInfo = fedInfo;
+    public double getFedMedical() {
+        return fedMedical;
+    }
+
+    public double getFedSocialSecurity() {
+        return fedSocialSecurity;
+    }
+
+    @Override
+    public String toString() {
+        return "Payroll{" +
+                "payId=" + payId +
+                ", payDate=" + payDate +
+                ", earnings=" + earnings +
+                ", stateTax=" + stateTax +
+                ", retire401k=" + retire401k +
+                ", healthCare=" + healthCare +
+                ", fedTax=" + fedTax +
+                ", fedMedical=" + fedMedical +
+                ", fedSocialSecurity=" + fedSocialSecurity +
+                '}';
     }
 }

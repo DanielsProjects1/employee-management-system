@@ -6,11 +6,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import org.springframework.stereotype.Component;
 
-@Entity
 public class FederalInfo {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+
     private double tax;
     private double medical;
     private double socialSecurtiy;
@@ -20,13 +17,6 @@ public class FederalInfo {
         this.tax = tax;
         this.medical = medical;
         this.socialSecurtiy = socialSecurtiy;
-    }
-
-    public int getId() {
-        return id;
-    }
-    public void setId(int id) {
-        this.id = id;
     }
 
     public double getTax() {

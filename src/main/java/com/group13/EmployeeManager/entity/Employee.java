@@ -21,6 +21,8 @@ public class Employee {
     @ManyToOne
     @JoinColumn(name = "division_id")
     private Division division;
+    @OneToOne(cascade = CascadeType.ALL)
+    private Payroll payroll;
 
     public Employee() {}
     public Employee(Long id, String name, String email, LocalDate hireDate, double salary, String socialSecurityNumber) {
@@ -42,6 +44,14 @@ public class Employee {
 
     public Job getJobTitle() {
         return jobTitle;
+    }
+
+    public double getPayForMonthByJob() {
+        return salary + (salary * 0.1);
+    }
+
+    public double getPayForMonthByDivision() {
+        return salary + (salary * 0.1);
     }
 
     public void setJobTitle(Job jobTitle) {
@@ -72,7 +82,23 @@ public class Employee {
         this.email = email;
     }
 
-    public double  getSalary() {
+    public LocalDate getHireDate() {
+        return hireDate;
+    }
+
+    public void setHireDate(LocalDate hireDate) {
+        this.hireDate = hireDate;
+    }
+
+    public Payroll getPayroll() {
+        return payroll;
+    }
+
+    public void setPayroll(Payroll payroll) {
+        this.payroll = payroll;
+    }
+
+    public double getSalary() {
         return salary;
     }
 
@@ -88,5 +114,18 @@ public class Employee {
         this.socialSecurityNumber = socialSecurityNumber;
     }
 
-
+    @Override
+    public String toString() {
+        return "Employee{" +
+                "\nid: " + id +
+                "\nname: " + name + '\'' +
+                "\nemail: " + email + '\'' +
+                "\nhireDate: " + hireDate +
+                "\nsalary: " + salary +
+                "\nsocialSecurityNumber: " + socialSecurityNumber + '\'' +
+                "\njobTitle: " + jobTitle +
+                "\ndivision: " + division +
+                "\npayroll: " + payroll +
+                '}';
+    }
 }
