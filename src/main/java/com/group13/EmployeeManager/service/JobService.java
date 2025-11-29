@@ -4,6 +4,8 @@ import com.group13.EmployeeManager.entity.Job;
 import com.group13.EmployeeManager.repository.JobRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class JobService {
 
@@ -16,5 +18,15 @@ public class JobService {
         return jobRepository.findById(id).get();
     }
 
-    public Job updateJob()
+    public Job findJobByTitle(String jobTitle) {
+        return jobRepository.findJobByTitle(jobTitle);
+    }
+
+    public List<Job> findAllJobs() {
+        return jobRepository.findAll();
+    }
+
+    public Job updateJob(Job job) {
+        return jobRepository.save(job);
+    }
 }
