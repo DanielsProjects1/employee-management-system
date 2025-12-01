@@ -12,8 +12,8 @@ public class PayrollService {
         this.payrollRepository = payrollRepository;
     }
 
-    public Payroll findPayrollById(long id) {
-        return payrollRepository.findById(id);
+    public Payroll findPayrollByPayId(Long id) {
+        return payrollRepository.findById(id).get();
     }
 
     public Payroll updatePayroll(Payroll payroll) {

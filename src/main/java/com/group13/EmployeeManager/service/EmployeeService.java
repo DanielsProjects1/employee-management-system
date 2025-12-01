@@ -131,7 +131,7 @@ public class EmployeeService {
     }
 
     @Transactional
-    public void assignPayrollToEmployee(Employee employee, int payId) {
+    public void assignPayrollToEmployee(Employee employee, Long payId) {
         Payroll payroll = payrollRepository.findById(payId).get();
         employee.setPayroll(payroll);
         employeeRepository.save(employee);

@@ -8,7 +8,7 @@ import java.time.LocalDate;
 public class Payroll {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int payId;
+    private Long payId;
     private LocalDate payDate;
     private double earnings;
     private double stateTax;
@@ -31,11 +31,11 @@ public class Payroll {
         this.fedSocialSecurity = fedInfo.getSocialSecurtiy();
     }
 
-    public int getPayId() {
+    public Long getPayId() {
         return payId;
     }
 
-    public void setPayId(int payId) {
+    public void setPayId(Long payId) {
         this.payId = payId;
     }
 
