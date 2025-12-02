@@ -1,7 +1,11 @@
 package com.group13.EmployeeManager.ui;
 
 import com.group13.EmployeeManager.entity.Employee;
+import com.group13.EmployeeManager.entity.Division;
+import com.group13.EmployeeManager.entity.Job;
 import com.group13.EmployeeManager.service.EmployeeService;
+import com.group13.EmployeeManager.service.DivisionService;
+import com.group13.EmployeeManager.service.JobService;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -25,6 +29,8 @@ import java.util.Optional;
 public class EmployeeFxController {
 
     private final EmployeeService employeeService;
+    private final JobService jobService;
+    private final DivisionService divisionService;
     private final ObservableList<Employee> employees = FXCollections.observableArrayList();
 
     @FXML
@@ -61,9 +67,9 @@ public class EmployeeFxController {
     @FXML
     private TextField salaryField;
     @FXML
-    private TextField jobField;
+    private ComboBox<String> jobField;
     @FXML
-    private TextField divisionField;
+    private ComboBox<String> divisionField;
     @FXML
     private TextField minSalaryRangeField;
     @FXML
@@ -81,8 +87,10 @@ public class EmployeeFxController {
     @FXML
     private TextArea reportOutput;
 
-    public EmployeeFxController(EmployeeService employeeService) {
+    public EmployeeFxController(EmployeeService employeeService, JobService jobService, DivisionService divisionService) {
         this.employeeService = employeeService;
+        this.jobService = jobService;
+        this.divisionService = divisionService;
     }
 
     @FXML
@@ -96,6 +104,16 @@ public class EmployeeFxController {
         if (adjustmentModeBox != null) {
             adjustmentModeBox.getItems().setAll(AdjustMode.values());
             adjustmentModeBox.getSelectionModel().select(AdjustMode.PERCENT);
+        }
+        if (jobField != null) {
+            jobField.setEditable(true);
+            List<Job> jobs = jobService.findAllJobs();
+            jobField.getItems().setAll(jobs.stream().map(Job::getTitle).toList());
+        }
+        if (divisionField != null) {
+            divisionField.setEditable(true);
+            List<Division> divisions = divisionService.findAllDivisions();
+            divisionField.getItems().setAll(divisions.stream().map(Division::getName).toList());
         }
 
         idColumn.setCellValueFactory(cell -> new SimpleObjectProperty<>(cell.getValue().getId()));
@@ -314,8 +332,8 @@ public class EmployeeFxController {
         ssnField.setText(employee.getSocialSecurityNumber());
         salaryField.setText(employee.getSalary() == 0 ? "" : Double.toString(employee.getSalary()));
         hireDatePicker.setValue(employee.getHireDate());
-        jobField.setText(employee.getJobTitle() != null ? employee.getJobTitle().getTitle() : "");
-        divisionField.setText(employee.getDivision() != null ? employee.getDivision().getName() : "");
+        jobField.getEditor().setText(employee.getJobTitle() != null ? employee.getJobTitle().getTitle() : "");
+        divisionField.getEditor().setText(employee.getDivision() != null ? employee.getDivision().getName() : "");
     }
 
     private void clearForm() {
@@ -325,8 +343,8 @@ public class EmployeeFxController {
         ssnField.clear();
         salaryField.clear();
         hireDatePicker.setValue(null);
-        jobField.clear();
-        divisionField.clear();
+        jobField.getEditor().clear();
+        divisionField.getEditor().clear();
         employeeTable.getSelectionModel().clearSelection();
     }
 
@@ -354,11 +372,13 @@ public class EmployeeFxController {
         employee.setHireDate(hireDatePicker.getValue());
 
         FormData formData = new FormData();
-        formData.jobTitle = jobField.getText() != null && !jobField.getText().trim().isEmpty()
-                ? jobField.getText().trim()
+        String jobValue = jobField.getEditor().getText();
+        formData.jobTitle = jobValue != null && !jobValue.trim().isEmpty()
+                ? jobValue.trim()
                 : null;
-        formData.divisionName = divisionField.getText() != null && !divisionField.getText().trim().isEmpty()
-                ? divisionField.getText().trim()
+        String divisionValue = divisionField.getEditor().getText();
+        formData.divisionName = divisionValue != null && !divisionValue.trim().isEmpty()
+                ? divisionValue.trim()
                 : null;
         formData.hireDate = employee.getHireDate();
         return formData;
@@ -418,11 +438,21 @@ public class EmployeeFxController {
         boolean hireDateNeedsRestore = formData.hireDate != null;
 
         if (formData.jobTitle != null) {
-            employeeService.assignJobToEmployee(employee, formData.jobTitle);
+            Job job = jobService.findJobByTitle(formData.jobTitle);
+            if (job == null) {
+                job = jobService.updateJob(new Job(null, formData.jobTitle));
+            }
+            employeeService.assignJobToEmployee(employee, job.getTitle());
             hireDateNeedsRestore = true; // assign method overrides hire date
         }
         if (formData.divisionName != null) {
-            employeeService.assignDivisionToEmployee(employee, formData.divisionName);
+            Division division = divisionService.findByName(formData.divisionName);
+            if (division == null) {
+                Division newDivision = new Division();
+                newDivision.setName(formData.divisionName);
+                division = divisionService.addDivision(newDivision);
+            }
+            employeeService.assignDivisionToEmployee(employee, division.getName());
         }
 
         if (hireDateNeedsRestore) {

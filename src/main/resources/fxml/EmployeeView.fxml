@@ -82,10 +82,10 @@
                         <DatePicker fx:id="hireDatePicker" promptText="yyyy-mm-dd" GridPane.rowIndex="5" GridPane.columnIndex="1"/>
 
                         <Label text="Job Title:" GridPane.rowIndex="6" GridPane.columnIndex="0"/>
-                        <TextField fx:id="jobField" promptText="Existing job title" GridPane.rowIndex="6" GridPane.columnIndex="1"/>
+                        <ComboBox fx:id="jobField" promptText="Select or type new job" GridPane.rowIndex="6" GridPane.columnIndex="1"/>
 
                         <Label text="Division:" GridPane.rowIndex="7" GridPane.columnIndex="0"/>
-                        <TextField fx:id="divisionField" promptText="Existing division name" GridPane.rowIndex="7" GridPane.columnIndex="1"/>
+                        <ComboBox fx:id="divisionField" promptText="Select or type new division" GridPane.rowIndex="7" GridPane.columnIndex="1"/>
                     </GridPane>
                     <HBox alignment="CENTER_RIGHT" spacing="10.0">
                         <Button text="Add New" onAction="#handleAdd"/>
