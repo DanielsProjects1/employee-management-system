@@ -1,7 +1,11 @@
 package com.group13.EmployeeManager.ui;
 
 import com.group13.EmployeeManager.entity.Employee;
+import com.group13.EmployeeManager.entity.Division;
+import com.group13.EmployeeManager.entity.Job;
 import com.group13.EmployeeManager.service.EmployeeService;
+import com.group13.EmployeeManager.service.DivisionService;
+import com.group13.EmployeeManager.service.JobService;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -25,6 +29,8 @@ import java.util.Optional;
 public class EmployeeFxController {
 
     private final EmployeeService employeeService;
+    private final JobService jobService;
+    private final DivisionService divisionService;
     private final ObservableList<Employee> employees = FXCollections.observableArrayList();
 
     @FXML
@@ -61,9 +67,17 @@ public class EmployeeFxController {
     @FXML
     private TextField salaryField;
     @FXML
-    private TextField jobField;
+    private ComboBox<String> jobField;
     @FXML
-    private TextField divisionField;
+    private ComboBox<String> divisionField;
+    @FXML
+    private TextField minSalaryRangeField;
+    @FXML
+    private TextField maxSalaryRangeField;
+    @FXML
+    private TextField adjustmentValueField;
+    @FXML
+    private ComboBox<AdjustMode> adjustmentModeBox;
     @FXML
     private DatePicker hireDatePicker;
     @FXML
@@ -73,8 +87,10 @@ public class EmployeeFxController {
     @FXML
     private TextArea reportOutput;
 
-    public EmployeeFxController(EmployeeService employeeService) {
+    public EmployeeFxController(EmployeeService employeeService, JobService jobService, DivisionService divisionService) {
         this.employeeService = employeeService;
+        this.jobService = jobService;
+        this.divisionService = divisionService;
     }
 
     @FXML
@@ -84,6 +100,20 @@ public class EmployeeFxController {
         if (reportSelector != null) {
             reportSelector.getItems().setAll(ReportType.values());
             reportSelector.getSelectionModel().select(ReportType.FULL_EMPLOYEE_PAY);
+        }
+        if (adjustmentModeBox != null) {
+            adjustmentModeBox.getItems().setAll(AdjustMode.values());
+            adjustmentModeBox.getSelectionModel().select(AdjustMode.PERCENT);
+        }
+        if (jobField != null) {
+            jobField.setEditable(true);
+            List<Job> jobs = jobService.findAllJobs();
+            jobField.getItems().setAll(jobs.stream().map(Job::getTitle).toList());
+        }
+        if (divisionField != null) {
+            divisionField.setEditable(true);
+            List<Division> divisions = divisionService.findAllDivisions();
+            divisionField.getItems().setAll(divisions.stream().map(Division::getName).toList());
         }
 
         idColumn.setCellValueFactory(cell -> new SimpleObjectProperty<>(cell.getValue().getId()));
@@ -234,6 +264,42 @@ public class EmployeeFxController {
     }
 
     @FXML
+    private void handleApplySalaryIncrease() {
+        Double min = parseDouble(minSalaryRangeField, "Minimum salary");
+        Double max = parseDouble(maxSalaryRangeField, "Maximum salary");
+        Double value = parseDouble(adjustmentValueField, "Adjustment value");
+        AdjustMode mode = Optional.ofNullable(adjustmentModeBox != null ? adjustmentModeBox.getValue() : AdjustMode.PERCENT)
+                .orElse(AdjustMode.PERCENT);
+
+        if (min == null || max == null || value == null) {
+            return;
+        }
+        if (min < 0 || max <= 0 || max <= min) {
+            showError("Salary range", "Enter a valid salary range where max is greater than min.");
+            return;
+        }
+
+        List<Employee> all = employeeService.findAllEmployees();
+        int updated = 0;
+        for (Employee e : all) {
+            double salary = e.getSalary();
+            if (salary >= min && salary < max) {
+                double delta = mode == AdjustMode.PERCENT ? salary * (value / 100.0) : value;
+                double updatedSalary = salary + delta;
+                e.setSalary(updatedSalary);
+                employeeService.updateEmployee(e);
+                updated++;
+            }
+        }
+        refreshTable();
+        String label = mode == AdjustMode.PERCENT ? value + "% change" : "amount change of " + value;
+        statusLabel.setText("Applied " + label + " to " + updated + " employee(s) in range.");
+        if (updated == 0) {
+            showInfo("No employees updated", "No employees matched the specified salary range.");
+        }
+    }
+
+    @FXML
     private void handleRunReport() {
         if (reportSelector == null || reportOutput == null) {
             return;
@@ -266,8 +332,8 @@ public class EmployeeFxController {
         ssnField.setText(employee.getSocialSecurityNumber());
         salaryField.setText(employee.getSalary() == 0 ? "" : Double.toString(employee.getSalary()));
         hireDatePicker.setValue(employee.getHireDate());
-        jobField.setText(employee.getJobTitle() != null ? employee.getJobTitle().getTitle() : "");
-        divisionField.setText(employee.getDivision() != null ? employee.getDivision().getName() : "");
+        jobField.getEditor().setText(employee.getJobTitle() != null ? employee.getJobTitle().getTitle() : "");
+        divisionField.getEditor().setText(employee.getDivision() != null ? employee.getDivision().getName() : "");
     }
 
     private void clearForm() {
@@ -277,8 +343,8 @@ public class EmployeeFxController {
         ssnField.clear();
         salaryField.clear();
         hireDatePicker.setValue(null);
-        jobField.clear();
-        divisionField.clear();
+        jobField.getEditor().clear();
+        divisionField.getEditor().clear();
         employeeTable.getSelectionModel().clearSelection();
     }
 
@@ -306,11 +372,13 @@ public class EmployeeFxController {
         employee.setHireDate(hireDatePicker.getValue());
 
         FormData formData = new FormData();
-        formData.jobTitle = jobField.getText() != null && !jobField.getText().trim().isEmpty()
-                ? jobField.getText().trim()
+        String jobValue = jobField.getEditor().getText();
+        formData.jobTitle = jobValue != null && !jobValue.trim().isEmpty()
+                ? jobValue.trim()
                 : null;
-        formData.divisionName = divisionField.getText() != null && !divisionField.getText().trim().isEmpty()
-                ? divisionField.getText().trim()
+        String divisionValue = divisionField.getEditor().getText();
+        formData.divisionName = divisionValue != null && !divisionValue.trim().isEmpty()
+                ? divisionValue.trim()
                 : null;
         formData.hireDate = employee.getHireDate();
         return formData;
@@ -370,11 +438,21 @@ public class EmployeeFxController {
         boolean hireDateNeedsRestore = formData.hireDate != null;
 
         if (formData.jobTitle != null) {
-            employeeService.assignJobToEmployee(employee, formData.jobTitle);
+            Job job = jobService.findJobByTitle(formData.jobTitle);
+            if (job == null) {
+                job = jobService.updateJob(new Job(null, formData.jobTitle));
+            }
+            employeeService.assignJobToEmployee(employee, job.getTitle());
             hireDateNeedsRestore = true; // assign method overrides hire date
         }
         if (formData.divisionName != null) {
-            employeeService.assignDivisionToEmployee(employee, formData.divisionName);
+            Division division = divisionService.findByName(formData.divisionName);
+            if (division == null) {
+                Division newDivision = new Division();
+                newDivision.setName(formData.divisionName);
+                division = divisionService.addDivision(newDivision);
+            }
+            employeeService.assignDivisionToEmployee(employee, division.getName());
         }
 
         if (hireDateNeedsRestore) {
@@ -439,6 +517,23 @@ public class EmployeeFxController {
         return value != null ? value : "";
     }
 
+    private Double parseDouble(TextField field, String label) {
+        if (field == null) {
+            return null;
+        }
+        String text = field.getText() != null ? field.getText().trim() : "";
+        if (text.isEmpty()) {
+            showError(label, "Please enter " + label.toLowerCase() + ".");
+            return null;
+        }
+        try {
+            return Double.parseDouble(text);
+        } catch (NumberFormatException ex) {
+            showError(label, label + " must be a valid number.");
+            return null;
+        }
+    }
+
     private static class FormData {
         String jobTitle;
         String divisionName;
@@ -461,6 +556,22 @@ public class EmployeeFxController {
         private final String label;
 
         SearchMode(String label) {
+            this.label = label;
+        }
+
+        @Override
+        public String toString() {
+            return label;
+        }
+    }
+
+    public enum AdjustMode {
+        PERCENT("Percent"),
+        AMOUNT("Flat Amount");
+
+        private final String label;
+
+        AdjustMode(String label) {
             this.label = label;
         }
 

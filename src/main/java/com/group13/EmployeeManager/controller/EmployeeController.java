@@ -28,6 +28,16 @@ public class EmployeeController {
         return employeeService.findEmployeeById(id);
     }
 
+    @GetMapping("/{name}")
+    public Employee getEmployeeByName(@PathVariable("name") String name) {
+        return employeeService.findEmployeeByName(name);
+    }
+
+    @GetMapping("/{ssn}")
+    public Employee getEmployeeBySSN(@PathVariable("ssn") String ssn) {
+        return employeeService.findEmployeeBySocialSecurityNumber(ssn);
+    }
+
     @PostMapping
     public Employee addEmployee(@RequestBody Employee employee) {
         return employeeService.updateEmployee(employee);
