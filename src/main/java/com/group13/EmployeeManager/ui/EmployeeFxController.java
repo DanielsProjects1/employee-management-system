@@ -3,6 +3,7 @@ package com.group13.EmployeeManager.ui;
 import com.group13.EmployeeManager.entity.Employee;
 import com.group13.EmployeeManager.entity.Division;
 import com.group13.EmployeeManager.entity.Job;
+import com.group13.EmployeeManager.entity.Payroll;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -16,17 +17,19 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.HashMap;
+import java.util.Map;
 
 @Component
 public class EmployeeFxController {
@@ -81,6 +84,22 @@ public class EmployeeFxController {
     private TextField adjustmentValueField;
     @FXML
     private ComboBox<AdjustMode> adjustmentModeBox;
+    @FXML
+    private DatePicker payDatePicker;
+    @FXML
+    private TextField earningsField;
+    @FXML
+    private TextField stateTaxField;
+    @FXML
+    private TextField retire401kField;
+    @FXML
+    private TextField healthCareField;
+    @FXML
+    private TextField fedTaxField;
+    @FXML
+    private TextField fedMedicalField;
+    @FXML
+    private TextField fedSocialField;
     @FXML
     private DatePicker hireDatePicker;
     @FXML
@@ -250,6 +269,79 @@ public class EmployeeFxController {
     }
 
     @FXML
+    private void handleSavePayroll() {
+        Employee employee = resolveEmployeeForUpdate();
+        if (employee == null) {
+            showError("Payroll", "Select an employee before saving payroll.");
+            return;
+        }
+
+        LocalDate payDate = payDatePicker.getValue();
+        if (payDate == null) {
+            showError("Payroll", "Pay date is required.");
+            return;
+        }
+
+        Double earnings = parseDouble(earningsField, "Earnings");
+        Double stateTax = parseDouble(stateTaxField, "State tax");
+        Double retire401k = parseDouble(retire401kField, "401k");
+        Double healthCare = parseDouble(healthCareField, "Health care");
+        Double fedTax = parseDouble(fedTaxField, "Federal tax");
+        Double fedMedical = parseDouble(fedMedicalField, "Federal medical");
+        Double fedSocial = parseDouble(fedSocialField, "Federal social security");
+
+        if (earnings == null || stateTax == null || retire401k == null || healthCare == null || fedTax == null || fedMedical == null || fedSocial == null) {
+            return;
+        }
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("payDate", payDate);
+        payload.put("earnings", earnings);
+        payload.put("stateTax", stateTax);
+        payload.put("retire401k", retire401k);
+        payload.put("healthCare", healthCare);
+        Map<String, Object> fedInfo = new HashMap<>();
+        fedInfo.put("tax", fedTax);
+        fedInfo.put("medical", fedMedical);
+        fedInfo.put("socialSecurtiy", fedSocial);
+        payload.put("fedInfo", fedInfo);
+        Map<String, Object> employeeRef = new HashMap<>();
+        employeeRef.put("id", employee.getId());
+        payload.put("employee", employeeRef);
+
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> response = restTemplate.postForObject(apiBase() + "/", payload, Map.class);
+            Long payId = null;
+            if (response != null && response.get("payId") instanceof Number num) {
+                payId = num.longValue();
+            }
+
+            if (payId != null) {
+                Payroll saved = new Payroll();
+                saved.setPayId(payId);
+                saved.setPayDate(payDate);
+                saved.setEarnings(earnings);
+                saved.setStateTax(stateTax);
+                saved.setRetire401k(retire401k);
+                saved.setHealthCare(healthCare);
+                setFieldValue(saved, "fedTax", fedTax);
+                setFieldValue(saved, "fedMedical", fedMedical);
+                setFieldValue(saved, "fedSocialSecurity", fedSocial);
+
+                employee.setPayroll(saved);
+                employeeController.updateEmployee(employee);
+                populatePayrollForm(saved);
+                statusLabel.setText("Saved payroll for employee #" + employee.getId());
+            } else {
+                showError("Payroll", "Saved payroll but could not read returned payId.");
+            }
+        } catch (RestClientException ex) {
+            showError("Payroll", "Unable to save payroll: " + ex.getMessage());
+        }
+    }
+
+    @FXML
     private void handleClearSearch() {
         searchInput.clear();
         refreshTable();
@@ -326,6 +418,7 @@ public class EmployeeFxController {
         hireDatePicker.setValue(employee.getHireDate());
         jobField.getEditor().setText(employee.getJobTitle() != null ? employee.getJobTitle().getTitle() : "");
         divisionField.getEditor().setText(employee.getDivision() != null ? employee.getDivision().getName() : "");
+        populatePayrollForm(employee.getPayroll());
     }
 
     private void clearForm() {
@@ -337,6 +430,14 @@ public class EmployeeFxController {
         hireDatePicker.setValue(null);
         jobField.getEditor().clear();
         divisionField.getEditor().clear();
+        payDatePicker.setValue(null);
+        earningsField.clear();
+        stateTaxField.clear();
+        retire401kField.clear();
+        healthCareField.clear();
+        fedTaxField.clear();
+        fedMedicalField.clear();
+        fedSocialField.clear();
         employeeTable.getSelectionModel().clearSelection();
     }
 
@@ -503,6 +604,40 @@ public class EmployeeFxController {
 
     private String defaultString(String value) {
         return value != null ? value : "";
+    }
+
+    private void populatePayrollForm(Payroll payroll) {
+        if (payroll == null) {
+            payDatePicker.setValue(null);
+            earningsField.clear();
+            stateTaxField.clear();
+            retire401kField.clear();
+            healthCareField.clear();
+            fedTaxField.clear();
+            fedMedicalField.clear();
+            fedSocialField.clear();
+            return;
+        }
+        payDatePicker.setValue(payroll.getPayDate());
+        earningsField.setText(Double.toString(payroll.getEarnings()));
+        stateTaxField.setText(Double.toString(payroll.getStateTax()));
+        retire401kField.setText(Double.toString(payroll.getRetire401k()));
+        healthCareField.setText(Double.toString(payroll.getHealthCare()));
+        fedTaxField.setText(Double.toString(payroll.getFedTax()));
+        fedMedicalField.setText(Double.toString(payroll.getFedMedical()));
+        fedSocialField.setText(Double.toString(payroll.getFedSocialSecurity()));
+    }
+
+    private void setFieldValue(Object target, String fieldName, Object value) {
+        if (target == null || value == null) {
+            return;
+        }
+        try {
+            var field = target.getClass().getDeclaredField(fieldName);
+            field.setAccessible(true);
+            field.set(target, value);
+        } catch (NoSuchFieldException | IllegalAccessException ignored) {
+        }
     }
 
     private Double parseDouble(TextField field, String label) {
