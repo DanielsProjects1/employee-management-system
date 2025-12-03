@@ -18,6 +18,7 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -87,6 +88,7 @@ public class EmployeeFxController {
     @FXML
     private TextArea reportOutput;
 
+    @Autowired
     public EmployeeFxController(EmployeeService employeeService, JobService jobService, DivisionService divisionService) {
         this.employeeService = employeeService;
         this.jobService = jobService;
