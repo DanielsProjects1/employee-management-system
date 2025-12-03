@@ -70,7 +70,13 @@ public class EmployeeService {
         return employeeRepository.save(employee);
     }
 
-    public Employee updateSalary(Employee employee) {
+    public Employee updateEmployeeSalary(Employee employee) {
+        updateSalary(employee);
+
+        return employeeRepository.save(employee);
+    }
+
+    private void updateSalary(Employee employee) {
         double salary = employee.getSalary();
 
         if (salary < 105000 && salary >= 58000) {
@@ -81,7 +87,6 @@ public class EmployeeService {
             employee.setSalary(salary + (salary * 0.025));
         }
 
-        return employeeRepository.save(employee);
     }
 
     public List<Employee> updateSalariesForEmployeesLessThanAmount(List<Employee> employees, double amount) {
