@@ -2,6 +2,7 @@ package com.group13.EmployeeManager.entity;
 
 import jakarta.persistence.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
@@ -10,8 +11,8 @@ public class Payroll {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long payId;
     private LocalDate payDate;
-    private double earnings;
-    private double stateTax;
+    private BigDecimal earnings;
+    private BigDecimal stateTax;
     private double retire401k;
     private double healthCare;
     private double fedTax;
@@ -23,7 +24,7 @@ public class Payroll {
 
     public Payroll() {}
 
-    public Payroll(LocalDate payDate, double earnings, double stateTax, double retire401k, double healthCare, FederalInfo fedInfo) {
+    public Payroll(LocalDate payDate, BigDecimal earnings, BigDecimal stateTax, double retire401k, double healthCare, FederalInfo fedInfo) {
         this.payDate = payDate;
         this.earnings = earnings;
         this.stateTax = stateTax;
@@ -50,19 +51,19 @@ public class Payroll {
         this.payDate = payDate;
     }
 
-    public double getEarnings() {
+    public BigDecimal getEarnings() {
         return earnings;
     }
 
-    public void setEarnings(double earnings) {
+    public void setEarnings(BigDecimal earnings) {
         this.earnings = earnings;
     }
 
-    public double getStateTax() {
+    public BigDecimal getStateTax() {
         return stateTax;
     }
 
-    public void setStateTax(double stateTax) {
+    public void setStateTax(BigDecimal stateTax) {
         this.stateTax = stateTax;
     }
 
@@ -96,16 +97,15 @@ public class Payroll {
 
     @Override
     public String toString() {
-        return "Payroll{" +
-                "payId=" + payId +
-                ", payDate=" + payDate +
-                ", earnings=" + earnings +
-                ", stateTax=" + stateTax +
-                ", retire401k=" + retire401k +
-                ", healthCare=" + healthCare +
-                ", fedTax=" + fedTax +
-                ", fedMedical=" + fedMedical +
-                ", fedSocialSecurity=" + fedSocialSecurity +
-                '}';
+        return "Payroll" +
+                "\npayId: " + payId +
+                "\npayDate: " + payDate +
+                "\nearnings: " + earnings +
+                "\nstateTax: " + stateTax +
+                "\nretire401k: " + retire401k +
+                "\nhealthCare: " + healthCare +
+                "\nfedTax: " + fedTax +
+                "\nfedMedical: " + fedMedical +
+                "\nfedSocialSecurity: " + fedSocialSecurity;
     }
 }

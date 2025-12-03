@@ -12,6 +12,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -77,22 +78,28 @@ public class EmployeeService {
     }
 
     private void updateSalary(Employee employee) {
-        double salary = employee.getSalary();
+        BigDecimal salary = employee.getSalary();
 
-        if (salary < 105000 && salary >= 58000) {
-            employee.setSalary(salary + (salary * 0.032));
-        } else if (salary < 58000) {
-            employee.setSalary(salary + (salary * 0.08));
-        } else if (salary > 105000) {
-            employee.setSalary(salary + (salary * 0.025));
+        BigDecimal min = new BigDecimal("58000");
+        BigDecimal max = new BigDecimal("105000");
+
+        if (salary.compareTo(max) < 0 && salary.compareTo(min) >= 0) {
+            BigDecimal increase = salary.multiply(new BigDecimal("0.032"));
+            employee.setSalary(salary.add(increase));
+        } else if (salary.compareTo(min) < 0) {
+            BigDecimal increase = salary.multiply(new BigDecimal("0.08"));
+            employee.setSalary(salary.add(increase));
+        } else if (salary.compareTo(max) > 0) {
+            BigDecimal increase = salary.multiply(new BigDecimal("0.025"));
+            employee.setSalary(salary.add(increase));
         }
 
     }
 
-    public List<Employee> updateSalariesForEmployeesLessThanAmount(List<Employee> employees, double amount) {
+    public List<Employee> updateSalariesForEmployeesLessThanAmount(List<Employee> employees, BigDecimal amount) {
 
         for (Employee employee : employees) {
-            if (employee.getSalary() < amount) {
+            if (employee.getSalary().compareTo(amount) < 0) {
                 updateSalary(employee);
             }
         }

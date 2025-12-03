@@ -2,7 +2,9 @@ package com.group13.EmployeeManager.entity;
 
 import jakarta.persistence.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.math.RoundingMode;
 
 @Entity
 public class Employee {
@@ -13,7 +15,7 @@ public class Employee {
     private String name;
     private String email;
     private LocalDate hireDate;
-    private double salary;
+    private BigDecimal salary;
     private String socialSecurityNumber;
     @ManyToOne
     @JoinColumn(name = "job_title_id")
@@ -26,7 +28,7 @@ public class Employee {
     private Payroll payroll;
 
     public Employee() {}
-    public Employee(Long id, String name, String email, LocalDate hireDate, double salary, String socialSecurityNumber) {
+    public Employee(Long id, String name, String email, LocalDate hireDate,BigDecimal salary, String socialSecurityNumber) {
         this.id = id;
         this.name = name;
         this.email = email;
@@ -45,14 +47,6 @@ public class Employee {
 
     public Job getJobTitle() {
         return jobTitle;
-    }
-
-    public double getPayForMonthByJob() {
-        return salary + (salary * 0.1);
-    }
-
-    public double getPayForMonthByDivision() {
-        return salary + (salary * 0.1);
     }
 
     public void setJobTitle(Job jobTitle) {
@@ -99,11 +93,11 @@ public class Employee {
         this.payroll = payroll;
     }
 
-    public double getSalary() {
+    public BigDecimal getSalary() {
         return salary;
     }
 
-    public void setSalary(double salary) {
+    public void setSalary(BigDecimal salary) {
         this.salary = salary;
     }
 
@@ -116,27 +110,9 @@ public class Employee {
     }
 
     @Transient
-    public double getTotalPayForMonthByJob() {
-        Long jobId = this.jobTitle.getId();
-        if (jobId > 0 && jobId < 5) {
-            return salary + (salary * 0.04);
-        } else if (jobId > 5 && jobId < 10) {
-            return salary + (salary * 0.035);
-        } else {
-            return salary + (salary * 0.03);
-        }
-    }
-
-    @Transient
-    public double getTotalPayForMonthByDivision() {
-        Long divId = this.division.getId();
-        if (divId > 0 && divId < 5) {
-            return salary + (salary * 0.04);
-        } else if (divId > 5 && divId < 10) {
-            return salary + (salary * 0.035);
-        } else {
-            return salary + (salary * 0.03);
-        }
+    public BigDecimal getPayForMonth() {
+        if (salary == null) return BigDecimal.ZERO;
+        return salary.divide(BigDecimal.valueOf(12), 2, RoundingMode.HALF_UP);
     }
 
     @Override

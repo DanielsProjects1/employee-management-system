@@ -21,10 +21,13 @@ import javafx.scene.control.TextField;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
+import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Locale;
 
 @Component
 public class EmployeeFxController {
@@ -51,7 +54,7 @@ public class EmployeeFxController {
     @FXML
     private TableColumn<Employee, LocalDate> hireDateColumn;
     @FXML
-    private TableColumn<Employee, Double> salaryColumn;
+    private TableColumn<Employee, BigDecimal> salaryColumn;
     @FXML
     private TableColumn<Employee, String> jobColumn;
     @FXML
@@ -267,16 +270,21 @@ public class EmployeeFxController {
 
     @FXML
     private void handleApplySalaryIncrease() {
-        Double min = parseDouble(minSalaryRangeField, "Minimum salary");
-        Double max = parseDouble(maxSalaryRangeField, "Maximum salary");
-        Double value = parseDouble(adjustmentValueField, "Adjustment value");
-        AdjustMode mode = Optional.ofNullable(adjustmentModeBox != null ? adjustmentModeBox.getValue() : AdjustMode.PERCENT)
+        BigDecimal min = parseDecimal(minSalaryRangeField, "Minimum salary");
+        BigDecimal max = parseDecimal(maxSalaryRangeField, "Maximum salary");
+        double value = parseDouble(adjustmentValueField, "Adjustment value");  // use BigDecimal
+        AdjustMode mode = Optional.ofNullable(adjustmentModeBox.getValue())
                 .orElse(AdjustMode.PERCENT);
 
-        if (min == null || max == null || value == null) {
-            return;
-        }
-        if (min < 0 || max <= 0 || max <= min) {
+//        if (min == null || max == null || value == null) {
+//            return;
+//        }
+
+// range validation with compareTo()
+        if (min.compareTo(BigDecimal.ZERO) < 0 ||
+                max.compareTo(BigDecimal.ZERO) <= 0 ||
+                max.compareTo(min) <= 0) {
+
             showError("Salary range", "Enter a valid salary range where max is greater than min.");
             return;
         }
@@ -284,10 +292,17 @@ public class EmployeeFxController {
         List<Employee> all = employeeService.findAllEmployees();
         int updated = 0;
         for (Employee e : all) {
-            double salary = e.getSalary();
-            if (salary >= min && salary < max) {
-                double delta = mode == AdjustMode.PERCENT ? salary * (value / 100.0) : value;
-                double updatedSalary = salary + delta;
+            BigDecimal salary = e.getSalary();
+            if (salary.compareTo(min) >= 0 && salary.compareTo(max) < 0) {
+                BigDecimal delta;
+                if (mode == AdjustMode.PERCENT) {
+                    BigDecimal percent = BigDecimal.valueOf(value).divide(BigDecimal.valueOf(100));
+                    delta = salary.multiply(percent);
+                } else {
+                    delta = BigDecimal.valueOf(value);
+                }
+                BigDecimal updatedSalary = salary.add(delta);
+
                 e.setSalary(updatedSalary);
                 employeeService.updateEmployee(e);
                 updated++;
@@ -332,7 +347,7 @@ public class EmployeeFxController {
         nameField.setText(employee.getName());
         emailField.setText(employee.getEmail());
         ssnField.setText(employee.getSocialSecurityNumber());
-        salaryField.setText(employee.getSalary() == 0 ? "" : Double.toString(employee.getSalary()));
+        salaryField.setText(employee.getSalary().compareTo(BigDecimal.ZERO) == 0 ? "" : employee.getSalary().toString());
         hireDatePicker.setValue(employee.getHireDate());
         jobField.getEditor().setText(employee.getJobTitle() != null ? employee.getJobTitle().getTitle() : "");
         divisionField.getEditor().setText(employee.getDivision() != null ? employee.getDivision().getName() : "");
@@ -365,7 +380,7 @@ public class EmployeeFxController {
 
         if (salaryField.getText() != null && !salaryField.getText().trim().isEmpty()) {
             try {
-                employee.setSalary(Double.parseDouble(salaryField.getText().trim()));
+                employee.setSalary(new BigDecimal(salaryField.getText().trim()));
             } catch (NumberFormatException ex) {
                 throw new IllegalArgumentException("Salary must be a valid number.");
             }
@@ -466,25 +481,10 @@ public class EmployeeFxController {
     private String buildFullEmployeePayReport(List<Employee> employees) {
         StringBuilder sb = new StringBuilder();
         for (Employee e : employees) {
-            sb.append("Employee #").append(e.getId() == null ? "?" : e.getId())
-                    .append(" - ").append(defaultString(e.getName()))
-                    .append(" | Job: ").append(e.getJobTitle() != null ? e.getJobTitle().getTitle() : "N/A")
-                    .append(" | Division: ").append(e.getDivision() != null ? e.getDivision().getName() : "N/A")
-                    .append(" | Salary: ").append(e.getSalary())
-                    .append(" | Hire Date: ").append(e.getHireDate())
-                    .append("\n");
+            sb.append(e);
             if (e.getPayroll() != null) {
                 var p = e.getPayroll();
-                sb.append("   Payroll ID ").append(p.getPayId())
-                        .append(" | Pay Date: ").append(p.getPayDate())
-                        .append(" | Earnings: ").append(p.getEarnings())
-                        .append(" | State Tax: ").append(p.getStateTax())
-                        .append(" | 401k: ").append(p.getRetire401k())
-                        .append(" | Health: ").append(p.getHealthCare())
-                        .append(" | Fed Tax: ").append(p.getFedTax())
-                        .append(" | Fed Medical: ").append(p.getFedMedical())
-                        .append(" | Fed SS: ").append(p.getFedSocialSecurity())
-                        .append("\n");
+                sb.append(p);
             } else {
                 sb.append("   No payroll data available\n");
             }
@@ -494,24 +494,45 @@ public class EmployeeFxController {
     }
 
     private String buildTotalPayByJobReport(List<Employee> employees) {
-        var totals = new java.util.LinkedHashMap<String, Double>();
+        var totals = new java.util.LinkedHashMap<String, BigDecimal>();
+
         for (Employee e : employees) {
             String key = e.getJobTitle() != null ? e.getJobTitle().getTitle() : "Unassigned";
-            totals.put(key, totals.getOrDefault(key, 0.0) + e.getPayForMonthByJob());
+
+            BigDecimal current = totals.getOrDefault(key, BigDecimal.ZERO);
+            BigDecimal updated = current.add(e.getPayForMonth());
+
+            totals.put(key, updated);
         }
+
         StringBuilder sb = new StringBuilder("Total pay for month by job title:\n");
         totals.forEach((job, total) -> sb.append(" - ").append(job).append(": ").append(total).append("\n"));
+
         return sb.toString();
     }
 
     private String buildTotalPayByDivisionReport(List<Employee> employees) {
-        var totals = new java.util.LinkedHashMap<String, Double>();
+        var totals = new java.util.LinkedHashMap<String, BigDecimal>();
+        NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(Locale.US);
+
         for (Employee e : employees) {
             String key = e.getDivision() != null ? e.getDivision().getName() : "Unassigned";
-            totals.put(key, totals.getOrDefault(key, 0.0) + e.getPayForMonthByDivision());
+
+            BigDecimal currentTotal = totals.getOrDefault(key, BigDecimal.ZERO);
+            BigDecimal updatedTotal = currentTotal.add(e.getPayForMonth());
+
+            totals.put(key, updatedTotal);
         }
+
         StringBuilder sb = new StringBuilder("Total pay for month by division:\n");
-        totals.forEach((division, total) -> sb.append(" - ").append(division).append(": ").append(total).append("\n"));
+        totals.forEach((division, total) ->
+                sb.append(" - ")
+                        .append(division)
+                        .append(": ")
+                        .append(currencyFormatter.format(total))
+                        .append("\n")
+        );
+
         return sb.toString();
     }
 
@@ -532,6 +553,14 @@ public class EmployeeFxController {
             return Double.parseDouble(text);
         } catch (NumberFormatException ex) {
             showError(label, label + " must be a valid number.");
+            return null;
+        }
+    }
+    private BigDecimal parseDecimal(TextField field, String name) {
+        try {
+            return new BigDecimal(field.getText().trim());
+        } catch (Exception e) {
+            showError(name, "Invalid number: " + field.getText());
             return null;
         }
     }
