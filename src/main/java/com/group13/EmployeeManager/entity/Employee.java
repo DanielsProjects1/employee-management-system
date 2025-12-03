@@ -119,11 +119,11 @@ public class Employee {
     public String toString() {
         return "Employee Information and Pay Statement History: \n" +
                 "\nid: " + id +
-                "\nname: " + name + '\'' +
-                "\nemail: " + email + '\'' +
+                "\nname: " + name +
+                "\nemail: " + email +
                 "\nhireDate: " + hireDate +
                 "\nsalary: " + salary +
-                "\nsocialSecurityNumber: " + socialSecurityNumber + '\'' +
+                "\nsocialSecurityNumber: " + socialSecurityNumber +
                 "\njobTitle: " + jobTitle +
                 "\ndivision: " + division +
                 "\npayroll: " + payroll;

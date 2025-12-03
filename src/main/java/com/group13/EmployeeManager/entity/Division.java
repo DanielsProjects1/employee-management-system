@@ -89,4 +89,18 @@ public class Division {
     public void setAddress2(String address2) {
         this.address2 = address2;
     }
+
+    @Override
+    public String toString() {
+        return "{\n" +
+                "id: " + id +
+                "\nname: " + name +
+                "\ncity: " + city +
+                "\nstate: " + state +
+                "\ncountry: " + country +
+                "\npostalCode: " + postalCode +
+                "\naddress1: " + address1 +
+                "\naddress2: " + address2 +
+                "\n}";
+    }
 }
